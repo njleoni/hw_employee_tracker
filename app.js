@@ -21,7 +21,9 @@ const start = () => {
       message: "What would you like to do?",
       choices: [
         "View All Employees",
-        "Change Employee Role",
+        "View Employee by Manager",
+        "Change Employee\'s Role",
+        "Update Employee\'s Manager",
         "Add New Department",
         "Add New Role",
         "Add New Employee",
@@ -37,9 +39,17 @@ const start = () => {
           viewAllEmployees();
           break;
 
-        case 'Change Employee Role':
+        case 'View Employee by Manager':
+          viewByManager();
+          break;
+
+        case 'Change Employee\'s Role':
           empRole();
-          break;          
+          break;
+
+        case 'Update Employee\'s Manager':
+          managerId();
+          break;
 
         case 'Add New Department':
           addDepartment();
@@ -179,44 +189,22 @@ const addEmployee = () => {
                             });
                             return choiceArray;
                         },
-                    },                   
+                    },
+                    {
+                        name: "manager_id",
+                        type: "input",
+                        message: "What is your manager\'s id",
+                    },
+
             ])
             .then((answer) => {
-            //  const first = answer.emp_first_name;
-            //  const last = answer.emp_last_name;
-            //  const id = parseInt(answer.emp_role_id);
-                connection.query("SELECT * FROM employee", (err, data) => {
-                  inquirer
-                    .prompt([
-                      {
-                        name: "manager_id",
-                        type: "rawlist",
-                        message: "Who is your manager",
-                        choices() {
-                            const choiceArray = [];
-                            data.forEach(({ emp_id, first_name, last_name }) => {
-                                choiceArray.push(`${emp_id}: ${first_name} ${last_name}`);
-                            });
-                            return choiceArray;
-                        },
-                      },
-                   
-                  ])                
-            })
-          })
-            .then((answers) => {
-              const first = answers.emp_first_name;
-              const last = answers.emp_last_name;
-              const id = parseInt(answers.emp_role_id);
-
-
                 connection.query(
                     "INSERT INTO employee SET ?",
                     {
-                        first_name: first,
-                        last_name: last,
-                        role_id: id,
-                        manager_id: answers.manger_id,
+                        first_name: answer.emp_first_name,
+                        last_name: answer.emp_last_name,
+                        role_id: parseInt(answer.emp_role_id),
+                        manager_id: answer.manager_id,
                     },
                     (err) => {
                         if (err) throw err;
@@ -227,54 +215,47 @@ const addEmployee = () => {
   });
 };
 
-// const managerId = () => {
-//     connection.query("SELECT * FROM employee", (err, data) => {
-//         inquirer
-//             .prompt([
-//                     {
-//                         name: "manager_id",
-//                         type: "rawlist",
-//                         message: "Who is your manager",
-//                         choices() {
-//                             const choiceArray = [];
-//                             data.forEach(({ emp_id, first_name, last_name }) => {
-//                                 choiceArray.push(`${emp_id}: ${first_name} ${last_name}`);
-//                             });
-//                             return choiceArray;
-//                         },
-//                     },
+const managerId = () => {
+    connection.query("SELECT * FROM employee", (err, data) => {
+        inquirer
+            .prompt([
+                    {
+                        name: "emp_name",
+                        type: "rawlist",
+                        message: "WHich employee needs their manager updated?",
+                        choices() {
+                            const choiceArray = [];
+                            data.forEach(({ last_name }) => {
+                                choiceArray.push(`${last_name}`);
+                            });
+                            return choiceArray;
+                        },
+                    },              
+                    {
+                        name: "manager_id",
+                        type: "rawlist",
+                        message: "Who is your currentmanager?",
+                        choices() {
+                            const choiceArray = [];
+                            data.forEach(({ emp_id, first_name, last_name }) => {
+                                choiceArray.push(`${emp_id}: ${first_name} ${last_name}`);
+                            });
+                            return choiceArray;
+                        },
+                    },
                    
-//             ])
-//             .then((answer) => {
-//               const name = name;
-//                     connection.query(
-//                     "UPDATE employee SET manager_id = ? WHERE last_name = ",
-//                     {
-//                         manager_id: parseInt(answer.manager_id),
-//                     },
-//                     (err) => {
-//                         if (err) throw err;
-//                         start();
-//                     }
-//                 );
-//                 // const query = "UPDATE employee SET manager_id = ? WHERE manager_id = null "
-//                 // connection.query(query, [answer.manager_id ], (err, res) => {
-//                 //   if (err) throw err;
-//                 //   start();
-//                 // });
-//                     // "INSERT INTO employee SET ?"
-//                     // "UPDATE employee SET manager_id = ? WHERE address = '%' ",
-//                     // {
-//                     //     manager_id: parseInt(answer.manager_id),
-//                     // },
-//                     // (err) => {
-//                     //     if (err) throw err;
-//                     //     start();
-//                     // }
-//                 // );                
-//             });    
-// });
-// };
+            ])
+            .then((answer) => {
+                const query = 
+                  'UPDATE employee SET manager_id = ? WHERE last_name = ? ';
+                connection.query(query, [parseInt(answer.manager_id), answer.emp_name ], (err, res) => {
+                  // if (err) throw err;
+                  start();
+               
+            });    
+        });
+    });
+};
 
 const empRole = () => {
     connection.query("SELECT * FROM role", (err, data) => {
@@ -310,7 +291,7 @@ const empRole = () => {
 };
 
 const viewDepartment = () => {
-    connection.query("SELECT id, dept_name FROM department;", (err, res) => {
+    connection.query("SELECT dept_id, dept_name FROM department;", (err, res) => {
             if (err) throw err
             console.table(res)
             start();
@@ -333,10 +314,30 @@ const viewEmployees = () => {
     });
 };
 
-// const viewAllEmployees = () => {
-//     connection.query("SELECT id, first_name, last_name, role_id, manager_id FROM employee;", (err, res) => {
-//             if (err) throw err
-//             console.table(res)
-//             start();
-//     });
-// };
+const viewAllEmployees = () => {
+    connection.query('SELECT employee.emp_id, employee.first_name, employee.last_name, role.role_id, role.title, role.salary, employee.manager_id FROM role LEFT JOIN employee ON (role.role_id=employee.role_id) ORDER BY employee.last_name', (err, res) => {
+      if (err) throw err
+            console.table(res)
+            start();
+    })
+};
+
+const viewByManager = () => {
+    inquirer
+      .prompt([
+        {
+          name: 'manager',
+          message: 'What manager would you like to search by?',
+          type: 'input'
+        },
+      ])
+
+    .then((answer) => {
+      const query = 'SELECT employee.emp_id, employee.first_name, employee.last_name, role.role_id, role.title, role.salary FROM role LEFT JOIN employee ON (role.role_id=employee.role_id) WHERE (employee.manager_id = ?) ORDER BY employee.last_name';
+      connection.query(query,  { manager_id: answer.manager }, (err, res) => {
+        if (err) throw err
+            console.table(res)
+            start();
+      })
+    })
+  };
