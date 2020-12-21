@@ -27,5 +27,5 @@
 #### If you have any additional questions, please contact me at nicholas.leoni@gmail.com
 
 ## Screenshot
-![Screenshot](./public/assets/img/employee_tracker.PNG)
+![Screenshot](./assets/img/employee_tracker.PNG)
 
